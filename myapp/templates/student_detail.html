@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Detail</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h2, h3 { color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background-color: #f2f2f2; }
+        .actions a {
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .actions a:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h2>{{ student.student_name }} - {{ student.course.course_name }}</h2>
+    <p><b>Join Date:</b> {{ student.join_date }} | <b>End Date:</b> {{ student.end_date|default:"-" }}</p>
+
+    <h3>Progress</h3>
+    <table>
+        <tr>
+            <th>Module</th>
+            <th>Topic</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Marks</th>
+            <th>Sign</th>
+            <th>Action</th>
+        </tr>
+
+        {% for item in topic_progress_list %}
+        <tr>
+            <td>{{ item.topic.module_name }}</td>
+            <td>{{ item.topic.topic_name }}</td>
+
+            {% if item.progress %}
+                <td>{{ item.progress.start_date|default:"-" }}</td>
+                <td>{{ item.progress.end_date|default:"-" }}</td>
+                <td>{{ item.progress.marks|default:"-" }}</td>
+                <td>{{ item.progress.sign|default:"-" }}</td>
+            {% else %}
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+            {% endif %}
+
+            <td class="actions">
+                <a href="{% url 'add_progress' student.student_id %}">Edit</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <p><a href="{% url 'student_list' %}">⬅ Back to Students</a></p>
+</body>
+</html>

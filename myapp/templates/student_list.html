@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Students</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h2 { color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background-color: #f2f2f2; }
+        a.button {
+            background: #4CAF50;
+            color: white;
+            padding: 6px 10px;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        a.button:hover { background: #45a049; }
+        .logout { float: right; }
+    </style>
+</head>
+<body>
+    <h2>Welcome, {{ request.user.staff.staff_name }}</h2>
+    <a class="logout" href="{% url 'staff_logout' %}">Logout</a>
+
+    <h3>Your Students</h3>
+    <table>
+        <tr>
+            <th>Student Name</th>
+            <th>Course</th>
+            <th>Action</th>
+        </tr>
+        {% for student in students %}
+        <tr>
+            <td>{{ student.student_name }}</td>
+            <td>{{ student.course.course_name }}</td>
+            <td>
+                <a class="button" href="{% url 'student_detail' student.student_id %}">View / Add Progress</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="3">No students assigned to you.</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

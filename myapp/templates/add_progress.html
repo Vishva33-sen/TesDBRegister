@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Progress - {{ student.student_name }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background-color: #f2f2f2; }
+        input { width: 90%; padding: 4px; }
+        button { margin-top: 10px; background: #4CAF50; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h2>Add / Update Progress for {{ student.student_name }}</h2>
+
+    <form method="POST">
+        {% csrf_token %}
+        <table>
+            <tr>
+                <th>Module</th>
+                <th>Topic</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Marks</th>
+                <th>Sign</th>
+            </tr>
+            {% for form, topic in formset.forms|zip:topics %}
+            <tr>
+                <td>{{ topic.module_name }}</td>
+                <td>{{ topic.topic_name }}</td>
+                <td>{{ form.start_date }}</td>
+                <td>{{ form.end_date }}</td>
+                <td>{{ form.marks }}</td>
+                <td>{{ form.sign }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        <button type="submit">Save Progress</button>
+    </form>
+
+    <p><a href="{% url 'student_list' %}">⬅ Back to Students</a></p>
+</body>
+</html>

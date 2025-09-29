@@ -28,7 +28,7 @@ class StudentAdminForm(forms.ModelForm):
     )
     class Meta:
         model = Student
-        fields = ('student_name', 'join_date', 'end_date', 'course')
+        fields = ('student_name', 'join_date', 'end_date', 'course','student_email','student_contact','batch','mode')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -43,7 +43,7 @@ class StudentAdminForm(forms.ModelForm):
 @admin.register(Staff)
 class StaffAdmin(admin.ModelAdmin):
     # form = StudentAdminForm
-    list_display = ('staff_id', 'staff_name', 'contact')
+    list_display = ('staff_id', 'staff_name', 'contact','staff_email')
     list_filter = ('staff_id','staff_name',)
 
 

@@ -6,6 +6,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .models import Student, StudentTopicProgress, Staff, CourseTopic
 from django.contrib import messages
 from django.forms import modelformset_factory
+from django import forms
 
 
 def home(request):
@@ -21,7 +22,9 @@ def student_detail(request, student_id):
             return redirect('home')
 
     # ✅ Fetch all topics for the student's course
-    topics = CourseTopic.objects.filter(course=student.course).order_by('module_name', 'topic_name')
+    # topics = CourseTopic.objects.filter(course=student.course).order_by('module_name', 'topic_name')
+    topics = CourseTopic.objects.filter(course=student.course).order_by('topic_id')
+
 
     # ✅ Get progress for each topic (or None if not yet added)
     progress_dict = {
@@ -45,6 +48,22 @@ def student_detail(request, student_id):
 def student_list(request):
     staff = get_object_or_404(Staff, user=request.user)
     students = Student.objects.filter(staff=staff)
+
+    if request.method == "POST":
+        student_id = request.POST.get('student_id')
+        student = get_object_or_404(Student, pk=student_id, staff=staff)
+
+        # Update batch and mode
+        batch = request.POST.get('batch')
+        mode = request.POST.get('mode')
+
+        if batch in ['True', 'False']:
+            student.batch = True if batch == 'True' else False
+        if mode in ['True', 'False']:
+            student.mode = True if mode == 'True' else False
+
+        student.save()
+        return redirect('student_list')
     return render(request, 'student_list.html', {'students': students})
 
 
@@ -53,38 +72,46 @@ def add_progress(request, student_id):
     staff = get_object_or_404(Staff, user=request.user)
     student = get_object_or_404(Student, pk=student_id, staff=staff)
 
-    # ✅ Get all topics for this student's course
-    topics = CourseTopic.objects.filter(course=student.course).order_by('module_name', 'topic_name')
+    topics = CourseTopic.objects.filter(course=student.course).order_by('topic_id')
 
-    # ✅ Get or create progress objects for each topic (so we always have a row to edit)
-    progress_objects = []
     for topic in topics:
-        progress, created = StudentTopicProgress.objects.get_or_create(
+        StudentTopicProgress.objects.get_or_create(
             student=student,
             topic=topic,
             defaults={'sign': staff.staff_name}
         )
-        progress_objects.append(progress)
 
-    # ✅ Create a formset for all progress objects
+    class ProgressForm(forms.ModelForm):
+        class Meta:
+            model = StudentTopicProgress
+            fields = ('start_date', 'end_date', 'marks', 'sign')
+            widgets = {
+                'start_date': forms.DateInput(attrs={'type': 'date'}),
+                'end_date': forms.DateInput(attrs={'type': 'date'}),
+            }
+
     ProgressFormSet = modelformset_factory(
         StudentTopicProgress,
-        fields=('start_date', 'end_date', 'marks', 'sign'),
+        form=ProgressForm,
         extra=0
     )
 
+    queryset = StudentTopicProgress.objects.filter(student=student).order_by('topic__topic_id')
+
     if request.method == "POST":
-        formset = ProgressFormSet(request.POST, queryset=StudentTopicProgress.objects.filter(student=student))
+        formset = ProgressFormSet(request.POST, queryset=queryset)
         if formset.is_valid():
             formset.save()
             return redirect('student_detail', student_id=student.pk)
     else:
-        formset = ProgressFormSet(queryset=StudentTopicProgress.objects.filter(student=student))
+        formset = ProgressFormSet(queryset=queryset)
+
+    topic_form_pairs = list(zip(formset.forms, topics))
 
     return render(request, 'add_progress.html', {
         'student': student,
         'formset': formset,
-        'topics': topics,
+        'topic_form_pairs': topic_form_pairs,
     })
 
 

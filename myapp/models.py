@@ -7,6 +7,7 @@ class Staff(models.Model):
     staff_name =models.CharField(max_length=100)
     contact=models.CharField(max_length=20,blank=True)
     staff_id = models.AutoField(primary_key=True)
+    staff_email = models.EmailField(unique=True)
 
     def __str__(self):
         return self.staff_name
@@ -26,6 +27,19 @@ class Student(models.Model):
     end_date = models.DateField(null=True, blank=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='students')
     staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='students')
+    student_email = models.EmailField(unique=True)
+    student_contact = models.CharField(max_length=20, blank=True)
+    BATCH_CHOICES = [
+        (True, 'Morning'),
+        (False, 'Afternoon'),
+    ]
+    batch = models.BooleanField(choices=BATCH_CHOICES, default=True)
+
+    MODE_CHOICES = [
+        (True, 'Offline'),
+        (False, 'Online'),
+    ]
+    mode = models.BooleanField(choices=MODE_CHOICES, default=True)
 
 
     def __str__(self):

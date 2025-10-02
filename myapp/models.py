@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import models
+from django.utils import timezone
 
 # Create your models here.
 class Staff(models.Model):
@@ -8,6 +9,7 @@ class Staff(models.Model):
     contact=models.CharField(max_length=20,blank=True)
     staff_id = models.AutoField(primary_key=True)
     staff_email = models.EmailField(unique=True)
+    courses = models.ManyToManyField("Course", related_name="staffs")
 
     def __str__(self):
         return self.staff_name
@@ -15,7 +17,6 @@ class Staff(models.Model):
 class Course(models.Model):
     course_id = models.AutoField(primary_key=True)
     course_name = models.CharField(max_length=100)
-    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='courses')
 
     def __str__(self):
         return self.course_name
@@ -26,7 +27,7 @@ class Student(models.Model):
     join_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='students')
-    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='students')
+    staff = models.ForeignKey(Staff, on_delete=models.SET_NULL,null=True,blank=True, related_name='students')
     student_email = models.EmailField(unique=True)
     student_contact = models.CharField(max_length=20, blank=True)
     BATCH_CHOICES = [
@@ -43,7 +44,10 @@ class Student(models.Model):
 
 
     def __str__(self):
-        return f"{self.student_name} ({self.course.course_name} - {self.staff.staff_name})"
+        course_name = self.course.course_name if self.course else "No Course"
+        staff_name = self.staff.staff_name if self.staff else "Unassigned"
+        return f"{self.student_name} ({course_name} - {staff_name})"
+
 
 class CourseTopic(models.Model):
     topic_id = models.AutoField(primary_key=True)
@@ -75,6 +79,15 @@ class StudentTopicProgress(models.Model):
 
 
 
+class Attendance(models.Model):
+    staff = models.ForeignKey("Staff", on_delete=models.CASCADE, related_name="attendances")
+    date = models.DateField(default=timezone.now)
+    time = models.TimeField(auto_now_add=True)
+    wifi_verified = models.BooleanField(default=False)  # was it from correct WiFi?
 
+    class Meta:
+        unique_together = ('staff', 'date','wifi_verified')  # only one attendance per staff per day
 
+    def __str__(self):
+        return f"{self.staff.staff_name} - {self.date} ({'WiFi OK' if self.wifi_verified else 'Login only'})"
 

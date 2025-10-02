@@ -72,19 +72,18 @@ def add_progress(request, student_id):
     staff = get_object_or_404(Staff, user=request.user)
     student = get_object_or_404(Student, pk=student_id, staff=staff)
 
+    # Ensure all topics exist for this student
     topics = CourseTopic.objects.filter(course=student.course).order_by('topic_id')
-
     for topic in topics:
         StudentTopicProgress.objects.get_or_create(
             student=student,
-            topic=topic,
-            defaults={'sign': staff.staff_name}
+            topic=topic
         )
 
     class ProgressForm(forms.ModelForm):
         class Meta:
             model = StudentTopicProgress
-            fields = ('start_date', 'end_date', 'marks', 'sign')
+            fields = ('start_date', 'end_date', 'marks')
             widgets = {
                 'start_date': forms.DateInput(attrs={'type': 'date'}),
                 'end_date': forms.DateInput(attrs={'type': 'date'}),
@@ -101,8 +100,17 @@ def add_progress(request, student_id):
     if request.method == "POST":
         formset = ProgressFormSet(request.POST, queryset=queryset)
         if formset.is_valid():
-            formset.save()
+            for form in formset.forms:
+                progress = form.save(commit=False)
+                if form.has_changed():
+                    progress.sign = staff.staff_name
+                progress.save()
+                form.save_m2m()
             return redirect('student_detail', student_id=student.pk)
+        else:
+            print("Formset errors:", formset.errors)
+            print("Non-form errors:", formset.non_form_errors())
+
     else:
         formset = ProgressFormSet(queryset=queryset)
 
@@ -113,6 +121,7 @@ def add_progress(request, student_id):
         'formset': formset,
         'topic_form_pairs': topic_form_pairs,
     })
+
 
 
 def staff_login(request):
@@ -130,6 +139,14 @@ def staff_login(request):
         else:
             messages.error(request, "Invalid username or password.")
     return render(request, 'staff_login.html')
+
+# def get_staff(self, request):
+#     course_id = request.GET.get('course_id')
+#     staff_list = []
+#     if course_id:
+#         staffs = Staff.objects.filter(courses__course_id=course_id)
+#         staff_list = [{"id": s.staff_id, "name": s.staff_name} for s in staffs]
+#     return JsonResponse(staff_list, safe=False)
 
 
 

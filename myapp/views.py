@@ -3,10 +3,14 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Student, StudentTopicProgress, Staff, CourseTopic
+from .models import Student, StudentTopicProgress, Staff, CourseTopic , Attendance , StudentAttendance
 from django.contrib import messages
 from django.forms import modelformset_factory
 from django import forms
+from django.utils.timezone import now,localdate,datetime
+from django.utils import timezone
+from django.urls import reverse
+from datetime import date
 
 
 def home(request):
@@ -49,6 +53,9 @@ def student_list(request):
     staff = get_object_or_404(Staff, user=request.user)
     students = Student.objects.filter(staff=staff)
 
+    today = localdate()
+    attendance=Attendance.objects.filter(staff=staff,date=today).last()
+    print(attendance)
     if request.method == "POST":
         student_id = request.POST.get('student_id')
         student = get_object_or_404(Student, pk=student_id, staff=staff)
@@ -64,7 +71,7 @@ def student_list(request):
 
         student.save()
         return redirect('student_list')
-    return render(request, 'student_list.html', {'students': students})
+    return render(request, 'student_list.html', {'students': students , 'attendance':attendance})
 
 
 @login_required
@@ -149,6 +156,55 @@ def staff_login(request):
 #     return JsonResponse(staff_list, safe=False)
 
 
+@login_required
+def mark_student_attendance(request):
+    staff = get_object_or_404(Staff, user=request.user)
+    students = Student.objects.filter(staff=staff)
+    today = timezone.now().date()
+
+    # --- Get the selected date (POST first, then GET) ---
+    date_str = request.POST.get("date") or request.GET.get("date")
+    if date_str:
+        try:
+            selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            selected_date = today
+    else:
+        selected_date = today
+
+    # Prevent future dates
+    if selected_date > today:
+        selected_date = today
+
+    # --- Save attendance if POST ---
+    if request.method == "POST":
+        for student in students:
+            status = request.POST.get(f"status_{student.student_id}")
+            if status is not None:
+                status_bool = True if status == "present" else False
+                attendance, created = StudentAttendance.objects.get_or_create(
+                    student=student,
+                    date=selected_date,
+                    defaults={"status": status_bool}
+                )
+                if not created:
+                    attendance.status = status_bool
+                    attendance.save()
+        # Redirect back to the same selected date
+        return redirect(f"{reverse('student_attendance')}?date={selected_date.strftime('%Y-%m-%d')}")
+
+    # --- Load attendance for selected date ---
+    attendance_records = {
+        att.student_id: att
+        for att in StudentAttendance.objects.filter(date=selected_date, student__in=students)
+    }
+
+    return render(request, "student_attendance.html", {
+        "students": students,
+        "attendance_records": attendance_records,
+        "today": today.strftime("%Y-%m-%d"),
+        "selected_date": selected_date.strftime("%Y-%m-%d"),
+    })
 
 def staff_logout(request):
     logout(request)

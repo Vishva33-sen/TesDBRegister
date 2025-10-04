@@ -91,3 +91,18 @@ class Attendance(models.Model):
     def __str__(self):
         return f"{self.staff.staff_name} - {self.date} ({'WiFi OK' if self.wifi_verified else 'Login only'})"
 
+class StudentAttendance(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='attendances')
+    date = models.DateField(default=timezone.now)
+    time = models.TimeField(auto_now_add=True)
+    STATUS_CHOICES = [
+        (True, 'Present'),
+        (False, 'Absent'),
+    ]
+    status=models.BooleanField(choices=STATUS_CHOICES, null=True,blank=True)  # True for Present, False for Absent
+
+    class Meta:
+        unique_together = ('student', 'date')  # only one attendance per student per day
+
+    def __str__(self):
+        return f"{self.student.student_name} - {self.date}"

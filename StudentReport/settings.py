@@ -28,7 +28,7 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 # Allowed IP or WiFi gateways for attendance marking
-ALLOWED_WIFI_IPS = ["192.168.1.21", "2401:4900:88e4:cb03:94ac:daad:7e6a:840b"]  
+ALLOWED_WIFI_IPS = ["192.168.1.21", "2401:4900:88e4:cb03:94ac:daad:7e6a:840b","192.168.1.68"]  
 
 # settings.py
 TEST_WIFI_IP = "192.168.1.21"
@@ -135,4 +135,9 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'vishvasen912@gmail.com'   # admin email
 EMAIL_HOST_PASSWORD = 'zkpa srwy wodm lnnf' # app-specific password, not Gmail password
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+# Redirect users after login
+LOGIN_REDIRECT_URL = '/admin/'   # sends you to admin dashboard after login
+LOGOUT_REDIRECT_URL = '/'        # optional: send users to home after logout
 

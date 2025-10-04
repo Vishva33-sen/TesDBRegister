@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from .models import Staff, Course, Student, CourseTopic, StudentTopicProgress, Attendance
+from .models import Staff, Course, Student, CourseTopic, StudentTopicProgress, Attendance , StudentAttendance
 from django.urls import path
 from django.http import JsonResponse
 
@@ -151,3 +151,19 @@ class AttendanceAdmin(admin.ModelAdmin):
     list_display = ("staff", "date", "time", "wifi_verified")
     list_filter = ("staff", "date", "wifi_verified")
     search_fields = ("staff__staff_name",)
+
+
+
+@admin.register(StudentAttendance)
+class StudentAttendanceAdmin(admin.ModelAdmin):
+    list_display = ("student", "student_course", "student_staff", "date", "status")
+    list_filter = ("status", "date", "student__course__course_name", "student__staff__staff_name")
+    search_fields = ("student__student_name", "student__staff__staff_name", "student__course__course_name")
+
+    def student_course(self, obj):
+        return obj.student.course.course_name
+    student_course.admin_order_field = "student__course__course_name"
+
+    def student_staff(self, obj):
+        return obj.student.staff.staff_name
+    student_staff.admin_order_field = "student__staff__staff_name"

@@ -23,7 +23,7 @@ def get_local_ip():
         s.close()
     return ip
 
-@receiver(post_save, sender=Student)
+@receiver(post_save, sender=Student)#automatically calls when a new student is created
 def notify_staff_on_new_student(sender, instance, created, **kwargs):
     if created:  # only when new student is added
         staff = instance.staff
@@ -87,14 +87,14 @@ def mark_attendance(sender, request, user, **kwargs):
     # Case 2: If logging in with WiFi verified → create new record
     if wifi_verified:
         Attendance.objects.create(staff=staff, date=today, wifi_verified=True)
-        print(f"✅ Attendance (WiFi Verified) marked for {staff.staff_name} on {today}")
+        print(f"✅ Attendance (WiFi Verified) marked for {staff.staff_name} on {today} {ip}")
     else:
         # Case 3: Allow multiple unverified? → Only one unverified per day
         if not Attendance.objects.filter(staff=staff, date=today, wifi_verified=False).exists():
             Attendance.objects.create(staff=staff, date=today, wifi_verified=False)
-            print(f"✅ Attendance (Unverified WiFi) marked for {staff.staff_name} on {today}")
+            print(f"✅ Attendance (Unverified WiFi) marked for {staff.staff_name} on {today} {ip}")
         else:
-            print(f"⚠️ Attendance (Unverified) already exists for {staff.staff_name} on {today}")
+            print(f"⚠️ Attendance (Unverified) already exists for {staff.staff_name} on {today} {ip}")
 
     print(f"   🌐 Final IP used: {ip}")
     print(f"   📶 WiFi Verified: {wifi_verified}")

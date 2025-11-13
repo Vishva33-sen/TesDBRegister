@@ -30,11 +30,13 @@ class Student(models.Model):
     staff = models.ForeignKey(Staff, on_delete=models.SET_NULL,null=True,blank=True, related_name='students')
     student_email = models.EmailField(unique=True)
     student_contact = models.CharField(max_length=20, blank=True)
-    BATCH_CHOICES = [
-        (True, 'Morning'),
-        (False, 'Afternoon'),
-    ]
-    batch = models.BooleanField(choices=BATCH_CHOICES, default=True)
+    # BATCH_CHOICES = [
+    #     (True, 'Morning'),
+    #     (False, 'Afternoon'),
+    # ]
+    # batch = models.BooleanField(choices=BATCH_CHOICES, default=True)
+    
+    batch = models.ForeignKey("Batch", on_delete=models.SET_NULL, null=True, blank=True, related_name="students")
 
     MODE_CHOICES = [
         (True, 'Offline'),
@@ -106,3 +108,19 @@ class StudentAttendance(models.Model):
 
     def __str__(self):
         return f"{self.student.student_name} - {self.date}"
+
+
+class Batch(models.Model):
+    batch_id = models.AutoField(primary_key=True)
+    staff = models.ForeignKey("Staff", on_delete=models.CASCADE, related_name="batches")
+    batch_name = models.CharField(max_length=50, help_text="Example: Morning Batch")
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+
+    class Meta:
+        unique_together = ('staff', 'batch_name')
+        ordering = ['start_time']
+
+    def __str__(self):
+        return f"{self.batch_name} ({self.start_time.strftime('%I:%M %p')} - {self.end_time.strftime('%I:%M %p')})"
+

@@ -30,7 +30,7 @@ ALLOWED_HOSTS = []
 # Allowed IP or WiFi gateways for attendance marking
 ALLOWED_WIFI_IPS = ["192.168.1.21", "2401:4900:88e4:cb03:94ac:daad:7e6a:840b","192.168.1.68"]  
 
-# settings.py
+
 TEST_WIFI_IP = "192.168.1.21"
 
 # Application definition
@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'myapp',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [

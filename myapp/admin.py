@@ -1,9 +1,13 @@
 from django.contrib import admin
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from .models import Staff, Course, Student, CourseTopic, StudentTopicProgress, Attendance , StudentAttendance
+from .models import Staff, Course, Student, CourseTopic, StudentTopicProgress, Attendance , StudentAttendance ,Batch
 from django.urls import path
 from django.http import JsonResponse
+
+
+# Customize admin site
+admin.site.site_header = "TESDB ADMIN"   
 
 # ----------------------------
 # Course With Staff Filter
@@ -33,6 +37,7 @@ class CourseWithStaffFilter(admin.SimpleListFilter):
 class StudentAdminForm(forms.ModelForm):
     course = forms.ModelChoiceField(queryset=Course.objects.all(), required=True)
     staff = forms.ModelChoiceField(queryset=Staff.objects.none(), required=True)
+    batch = forms.ModelChoiceField(queryset=Batch.objects.none(), required=False)
 
     class Meta:
         model = Student
@@ -41,8 +46,9 @@ class StudentAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
+        print(self.data.get('staff'))
         if 'course' in self.data:
+            print("Course in data:", self.data.get('course'))
             try:
                 course_id = int(self.data.get('course'))
                 self.fields['staff'].queryset = Staff.objects.filter(courses__course_id=course_id)
@@ -51,6 +57,19 @@ class StudentAdminForm(forms.ModelForm):
                 self.fields['staff'].queryset = Staff.objects.none()
         elif self.instance.pk and self.instance.course:
             self.fields['staff'].queryset = self.instance.course.staffs.all()
+        
+        if 'staff' in self.data:
+            try:
+                staff_id = int(self.data.get('staff'))
+                self.fields['batch'].queryset = Batch.objects.filter(staff_id=staff_id)
+            except (ValueError, TypeError):
+                self.fields['batch'].queryset = Batch.objects.none()
+        elif self.instance.pk and self.instance.staff:
+            self.fields['batch'].queryset = Batch.objects.filter(staff=self.instance.staff)
+        else:
+            # Add this: no staff selected -> empty queryset
+            self.fields['batch'].queryset = Batch.objects.none()
+
 
 
 
@@ -114,22 +133,52 @@ class StudentAdmin(admin.ModelAdmin):
     search_fields = ('student_name',)
 
     class Media:
-        js = ("myapp/student_admin.js",)
+        js = ("myapp/student_admin_v2.js",)
 
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            path('get_staff/', self.admin_site.admin_view(self.get_staff), name='get_staff'),
+            path('getstaff/', self.admin_site.admin_view(self.get_staff), name='getstaff'),
+            path('getbatches/', self.admin_site.admin_view(self.get_batches), name='getbatches'),
         ]
         return custom_urls + urls
 
     def get_staff(self, request):
+        print(" get_staff called", request.GET)
         course_id = request.GET.get('course_id')
         staff_list = []
         if course_id:
             staffs = Staff.objects.filter(courses__course_id=course_id)
             staff_list = [{"id": s.staff_id, "name": s.staff_name} for s in staffs]
         return JsonResponse(staff_list, safe=False)
+    
+    def get_batches(self, request):
+        """AJAX: return batches for a single staff (filtered)."""   
+        staff_id = request.GET.get('staff_id')
+        batch_list = []
+        # debug log to server console
+        print("DEBUG get_batches called, raw staff_id:", repr(staff_id))
+
+        if staff_id:
+            try:
+                sid = int(staff_id)
+            except (ValueError, TypeError):
+                print("DEBUG get_batches: invalid staff_id, returning empty")
+                return JsonResponse(batch_list, safe=False)
+
+            # ensure we only filter by staff id
+            batches = Batch.objects.filter(staff_id=sid).order_by('start_time')
+            print("DEBUG get_batches: matched batches (ids):", list(batches.values_list('batch_id', flat=True)))
+
+            batch_list = [{"id": b.batch_id, "name": str(b)} for b in batches]
+
+        else:
+            print("DEBUG get_batches: no staff_id provided in request")
+
+        return JsonResponse(batch_list, safe=False)
+
+
+
 
 
 
@@ -167,3 +216,57 @@ class StudentAttendanceAdmin(admin.ModelAdmin):
     def student_staff(self, obj):
         return obj.student.staff.staff_name
     student_staff.admin_order_field = "student__staff__staff_name"
+
+
+# --------------------------
+# BATCH ADMIN
+# --------------------------
+@admin.register(Batch)
+class BatchAdmin(admin.ModelAdmin):
+    list_display=("batch_id","staff","batch_name","start_time","end_time")
+    list_filter=("staff","start_time","end_time",)
+    search_fields=("staff","start_time",)
+
+# ----------------------------
+# Student Topic Progress Admin
+# ----------------------------
+from django.contrib import admin
+from .models import StudentTopicProgress
+
+@admin.register(StudentTopicProgress)
+class StudentTopicProgressAdmin(admin.ModelAdmin):
+    list_display = (
+        'student_name', 
+        'staff_name', 
+        'course_name', 
+        'module_name', 
+        'topic_name', 
+        'start_date', 
+        'end_date', 
+        'sign'
+    )
+    search_fields = ('student__student_name', 'topic__topic_name', 'sign')
+
+    def student_name(self, obj):
+        return obj.student.student_name
+
+    def staff_name(self, obj):
+        return obj.student.staff.staff_name if obj.student.staff else "Unassigned"
+
+    def course_name(self, obj):
+        return obj.topic.course.course_name
+
+    def module_name(self, obj):
+        return obj.topic.module_name
+
+    def topic_name(self, obj):
+        return obj.topic.topic_name
+    
+    list_filter = (
+        'topic__course__course_name',
+        'topic__module_name',
+        'student__staff__staff_name',
+        'student',
+    )
+
+    

@@ -1,83 +1,3 @@
-<!-- <!DOCTYPE html>
-<html>
-<head>
-    <title>My Students</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h2 { color: #333; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-        th { background-color: #f2f2f2; }
-        a.button {
-            background: #4CAF50;
-            color: white;
-            padding: 6px 10px;
-            text-decoration: none;
-            border-radius: 4px;
-        }
-        a.button:hover { background: #45a049; }
-        .logout { float: right; }
-        button.update-btn {
-            background: #2196F3;
-            color: white;
-            padding: 5px 8px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button.update-btn:hover { background: #0b7dda; }
-    </style>
-</head>
-<body>
-    <h2>Welcome, {{ request.user.staff.staff_name }}</h2>
-    <a class="logout" href="{% url 'staff_logout' %}">Logout</a>
-
-    <h3>Your Students</h3>
-    <table>
-        <tr>
-            <th>Student Name</th>
-            <th>Course</th>
-            <th>Batch</th>
-            <th>Mode</th>
-            <th>Action</th>
-        </tr>
-        {% for student in students %}
-        <tr>
-            <td>{{ student.student_name }}</td>
-            <td>{{ student.course.course_name }}</td>
-            
-            
-            <form method="post" style="display: contents;">
-                {% csrf_token %}
-                <td>
-                    <select name="batch">
-                        <option value="True" {% if student.batch %}selected{% endif %}>Morning</option>
-                        <option value="False" {% if not student.batch %}selected{% endif %}>Afternoon</option>
-                    </select>
-                </td>
-                <td>
-                    <select name="mode">
-                        <option value="True" {% if student.mode %}selected{% endif %}>Online</option>
-                        <option value="False" {% if not student.mode %}selected{% endif %}>Offline</option>
-                    </select>
-                </td>
-                <td>
-                    <input type="hidden" name="student_id" value="{{ student.student_id }}">
-                    <button type="submit" class="update-btn">Update</button>
-                    <a class="button" href="{% url 'student_detail' student.student_id %}">View / Add Progress</a>
-                </td>
-            </form>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="5">No students assigned to you.</td>
-        </tr>
-        {% endfor %}
-    </table>
-</body>
-</html> -->
-
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -106,7 +26,7 @@
             padding: 25px 30px;
             border-radius: 15px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            display: flex;
+            display:flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
@@ -300,6 +220,45 @@
             border-radius: 15px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
+
+        .markAttendance{
+            background: linear-gradient(135deg, #ed64a6 0%, #d53f8c 100%);
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(237, 100, 166, 0.3);
+            float: right;
+            margin-top: -50px;
+        }
+        .markAttendance:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(237, 100, 166, 0.4);
+            background: linear-gradient(135deg, #d53f8c 0%, #b83280 100%);
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #667eea;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.6s ease;
+        }
+        .back-button:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
         
         @media (max-width: 768px) {
             .header {
@@ -321,6 +280,7 @@
 <body>
     <div class="container">
         <div class="header">
+        <div class = "header-left">
             <h2>Welcome, {{ request.user.staff.staff_name }}</h2>
             
                 <div class = "attendance",style="background:#f0f0f0; padding:10px; margin-bottom:20px; border:1px solid #ccc;">
@@ -336,12 +296,18 @@
                         ❌ Not Marked Yet
                     {% endif %}
                 </div>
-            <a class="logout" href="{% url 'staff_logout' %}">Logout</a>
+            </div>
+            <div class="header-right">
+                <h3>{{ batch.batch_name }} ({{ batch.start_time }} - {{ batch.end_time }})</h3>
+                <a class = "back-button" href="/get_batches" class="back-button">
+                    ⬅ Back to Batches
+                </a>
+            </div>
         </div>
 
         <div class="content-card">
             <h3>Your Students</h3>
-            <a href="{% url 'student_attendance' %}">Mark Attendance</a>
+            <a class ="markAttendance" href="{% url 'student_attendance' batch.batch_id %}">Mark Attendance</a>
             <div class="table-container">
                 <table>
                     <thead>
@@ -362,10 +328,16 @@
                             <form method="post" style="display: contents;">
                                 {% csrf_token %}
                                 <td>
-                                    <select name="batch">
-                                        <option value="True" {% if student.batch %}selected{% endif %}>Morning</option>
-                                        <option value="False" {% if not student.batch %}selected{% endif %}>Afternoon</option>
-                                    </select>
+                                    <form method="POST">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="student_id" value="{{ student.student_id }}">
+                                        <select name="batch">
+                                            {% for b in batches %}
+                                                <option value="{{ b.batch_id }}" {% if b == student.batch %}selected{% endif %}>
+                                                    {{ b.batch_name }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
                                 </td>
                                 <td>
                                     <select name="mode">
@@ -377,7 +349,7 @@
                                     <div class="action-cell">
                                         <input type="hidden" name="student_id" value="{{ student.student_id }}">
                                         <button type="submit" class="update-btn">Update</button>
-                                        <a class="button" href="{% url 'student_detail' student.student_id %}">View / Add Progress</a>
+                                        <a class="button" href="{% url 'student_detail' student.student_id batch.batch_id%}">View / Add Progress</a>
                                     </div>
                                 </td>
                             </form>

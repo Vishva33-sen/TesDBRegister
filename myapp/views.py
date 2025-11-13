@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Student, StudentTopicProgress, Staff, CourseTopic , Attendance , StudentAttendance
+from .models import Student, StudentTopicProgress, Staff, CourseTopic , Attendance , StudentAttendance ,Batch
 from django.contrib import messages
 from django.forms import modelformset_factory
 from django import forms
@@ -11,26 +11,29 @@ from django.utils.timezone import now,localdate,datetime
 from django.utils import timezone
 from django.urls import reverse
 from datetime import date
+import logging
+from django.views.decorators.http import require_GET
+
+logger = logging.getLogger(__name__)
 
 
 def home(request):
     return render(request, 'home.html')
 
 @login_required
-def student_detail(request, student_id):
+def student_detail(request, student_id,batch_id):
     student = get_object_or_404(Student, pk=student_id)
-
-    # ✅ Only allow staff to see their own students
+    #  Only allow staff to see their own students
     if hasattr(request.user, 'staff'):
         if student.staff != request.user.staff:
             return redirect('home')
 
-    # ✅ Fetch all topics for the student's course
+    #  Fetch all topics for the student's course
     # topics = CourseTopic.objects.filter(course=student.course).order_by('module_name', 'topic_name')
     topics = CourseTopic.objects.filter(course=student.course).order_by('topic_id')
 
 
-    # ✅ Get progress for each topic (or None if not yet added)
+    #  Get progress for each topic (or None if not yet added)
     progress_dict = {
         p.topic_id: p for p in StudentTopicProgress.objects.filter(student=student)
     }
@@ -45,40 +48,48 @@ def student_detail(request, student_id):
 
     return render(request, 'student_detail.html', {
         'student': student,
-        'topic_progress_list': topic_progress_list
+        'topic_progress_list': topic_progress_list,
+        'batch_id': batch_id,
     })
 
 @login_required
-def student_list(request):
+def student_list(request,batch_id):
     staff = get_object_or_404(Staff, user=request.user)
-    students = Student.objects.filter(staff=staff)
+    batch=get_object_or_404(Batch, pk=batch_id, staff=staff)
+    students = Student.objects.filter(staff=staff,batch=batch)
+    batches=Batch.objects.filter(staff=staff)
 
     today = localdate()
     attendance=Attendance.objects.filter(staff=staff,date=today).last()
     print(attendance)
     if request.method == "POST":
         student_id = request.POST.get('student_id')
+        new_batch_id = request.POST.get('batch')
         student = get_object_or_404(Student, pk=student_id, staff=staff)
+        if new_batch_id:
+            new_batch = get_object_or_404(Batch, pk=new_batch_id, staff=staff)
+            student.batch = new_batch
 
         # Update batch and mode
-        batch = request.POST.get('batch')
+        # batch = request.POST.get('batch')
         mode = request.POST.get('mode')
 
-        if batch in ['True', 'False']:
-            student.batch = True if batch == 'True' else False
+        # if batch in ['True', 'False']:
+        #     student.batch = True if batch == 'True' else False
         if mode in ['True', 'False']:
             student.mode = True if mode == 'True' else False
 
         student.save()
-        return redirect('student_list')
-    return render(request, 'student_list.html', {'students': students , 'attendance':attendance})
+        return redirect('student_list', batch_id=batch_id)
+    all_batches = Batch.objects.filter(staff=staff)
+    return render(request, 'student_list.html', {'students': students , 'attendance':attendance,'batch':batch,'all_batches':all_batches,'batches':batches,})
 
 
 @login_required
-def add_progress(request, student_id):
+def add_progress(request, student_id,batch_id):
     staff = get_object_or_404(Staff, user=request.user)
     student = get_object_or_404(Student, pk=student_id, staff=staff)
-
+    batch = get_object_or_404(Batch, pk=batch_id)
     # Ensure all topics exist for this student
     topics = CourseTopic.objects.filter(course=student.course).order_by('topic_id')
     for topic in topics:
@@ -113,7 +124,7 @@ def add_progress(request, student_id):
                     progress.sign = staff.staff_name
                 progress.save()
                 form.save_m2m()
-            return redirect('student_detail', student_id=student.pk)
+            return redirect('student_detail', student_id=student.pk,batch_id=batch.pk)
         else:
             print("Formset errors:", formset.errors)
             print("Non-form errors:", formset.non_form_errors())
@@ -127,6 +138,7 @@ def add_progress(request, student_id):
         'student': student,
         'formset': formset,
         'topic_form_pairs': topic_form_pairs,
+        'batch_id': batch.pk,
     })
 
 
@@ -139,27 +151,42 @@ def staff_login(request):
 
         if user is not None:
             login(request, user)
-            # ✅ Redirect staff to student list (not back to home)
+            #  Redirect staff to student batch list (not back to home)
             if hasattr(user, 'staff'):
-                return redirect('student_list')
+                return redirect('get_batches')
             return redirect('home')
         else:
             messages.error(request, "Invalid username or password.")
     return render(request, 'staff_login.html')
 
-# def get_staff(self, request):
-#     course_id = request.GET.get('course_id')
-#     staff_list = []
-#     if course_id:
-#         staffs = Staff.objects.filter(courses__course_id=course_id)
-#         staff_list = [{"id": s.staff_id, "name": s.staff_name} for s in staffs]
-#     return JsonResponse(staff_list, safe=False)
+@login_required
+def add_batch(request):
+    staff=get_object_or_404(Staff,user=request.user)
+    if request.method=="POST":
+        batch_name=request.POST["batch_name"]
+        start_time=request.POST["start_time"]
+        end_time=request.POST["end_time"]
+
+        Batch.objects.create(
+            staff=staff,
+            batch_name=batch_name,
+            start_time=start_time,
+            end_time=end_time
+        )
+
+        messages.success(request,"NEW BATCH ADDED SCCESSFULLY")
+        return redirect("get_batches")
+    return render(request,"add_batch.html")
+
+
+
 
 
 @login_required
-def mark_student_attendance(request):
+def mark_student_attendance(request,batch_id):
     staff = get_object_or_404(Staff, user=request.user)
-    students = Student.objects.filter(staff=staff)
+    batch=get_object_or_404(Batch, pk=batch_id, staff=staff)
+    students = Student.objects.filter(staff=staff,batch=batch)
     today = timezone.now().date()
 
     # --- Get the selected date (POST first, then GET) ---
@@ -175,6 +202,7 @@ def mark_student_attendance(request):
     # Prevent future dates
     if selected_date > today:
         selected_date = today
+    logger.info(f"Selected date for attendance: {selected_date}")
 
     # --- Save attendance if POST ---
     if request.method == "POST":
@@ -187,11 +215,13 @@ def mark_student_attendance(request):
                     date=selected_date,
                     defaults={"status": status_bool}
                 )
+                print("attendance : ",attendance, "created : ",created)
                 if not created:
                     attendance.status = status_bool
                     attendance.save()
+                    print("attendance : ",attendance, "created : ",created)
         # Redirect back to the same selected date
-        return redirect(f"{reverse('student_attendance')}?date={selected_date.strftime('%Y-%m-%d')}")
+        return redirect(f"{reverse('student_attendance', args=[batch.batch_id])}?date={selected_date.strftime('%Y-%m-%d')}")
 
     # --- Load attendance for selected date ---
     attendance_records = {
@@ -204,8 +234,41 @@ def mark_student_attendance(request):
         "attendance_records": attendance_records,
         "today": today.strftime("%Y-%m-%d"),
         "selected_date": selected_date.strftime("%Y-%m-%d"),
+        "batch": batch,
     })
+
+@login_required
+def getBatches(request):
+    staff= get_object_or_404(Staff, user=request.user)
+    batches = Batch.objects.filter(staff=staff).order_by('start_time')
+    return render(request, 'batch.html', {'batches': batches,'staff':staff})
 
 def staff_logout(request):
     logout(request)
     return redirect('staff_login')
+
+
+# @require_GET
+# @login_required
+# def get_staffs_json(request):
+#     """Return staff list for a given course (used by JS)"""
+#     course_id = request.GET.get("course_id")
+#     if not course_id:
+#         return JsonResponse([], safe=False)
+
+#     staffs = Staff.objects.filter(course__course_id=course_id).values("staff_id", "staff_name")
+#     data = [{"id": s["staff_id"], "name": s["staff_name"]} for s in staffs]
+#     return JsonResponse(data, safe=False)
+
+
+# @require_GET
+# @login_required
+# def get_batches_json(request):
+#     """Return batch list for a given staff (used by JS)"""
+#     staff_id = request.GET.get("staff_id")
+#     if not staff_id:
+#         return JsonResponse([], safe=False)
+
+#     batches = Batch.objects.filter(staff__staff_id=staff_id).values("batch_id", "batch_name")
+#     data = [{"id": b["batch_id"], "name": b["batch_name"]} for b in batches]
+#     return JsonResponse(data, safe=False)

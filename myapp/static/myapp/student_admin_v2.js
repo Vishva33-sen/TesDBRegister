@@ -29,13 +29,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // --- Helper: populate dropdown options ---
     function populateOptions(selectElem, items) {
-        clearOptions(selectElem);
+        // Clear existing options
+        selectElem.innerHTML = "";
+        
+        // Add placeholder first
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "---------";
+        selectElem.appendChild(placeholder);
+        
+        // Add actual items
+        console.log("📝 Adding options:", items);
         items.forEach(item => {
             const opt = document.createElement("option");
             opt.value = item.id;
             opt.textContent = item.name;
             selectElem.appendChild(opt);
+            console.log("  ✓ Added:", item.name);
         });
+        
+        console.log("📊 Total options now:", selectElem.options.length);
     }
 
     // --- When Course changes → fetch staff list ---

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Staff Login</title>
+    <title>Staff Registration</title>
     <style>
         * {
             margin: 0;
@@ -37,7 +37,7 @@
             100% { transform: translate(50px, 50px); }
         }
 
-        .login-container {
+        .register-container {
             position: relative;
             z-index: 1;
             animation: fadeInUp 0.8s ease;
@@ -193,6 +193,25 @@
             50% { transform: translateY(-10px); }
         }
 
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 0.95em;
+        }
+
+        .login-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .login-link a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
         @media (max-width: 480px) {
             form {
                 padding: 40px 25px;
@@ -231,11 +250,11 @@
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <form method="POST" id="loginForm">
+    <div class="register-container">
+        <form method="POST" id="registerForm">
             {% csrf_token %}
             <div class="lock-icon">🔐</div>
-            <h2>Staff Login</h2>
+            <h2>Staff Registration</h2>
             
             <div class="input-group">
                 <input type="text" name="username" placeholder="Username" required id="username">
@@ -247,18 +266,24 @@
                 <span class="input-icon">🔒</span>
             </div>
             
-            <button type="submit" id="loginBtn">Login</button>
-            <p>if u don't have account <a href="{% url 'register_staff' %}"> register here</a></p>
+            <div class="input-group">
+                <input type="password" name="confirm_password" placeholder="Confirm Password" required id="confirm_password">
+                <span class="input-icon">🔒</span>
+            </div>
+            
+            <button type="submit" id="registerBtn">Register</button>
+            
+            <p class="login-link">Already have account? <a href="{% url 'staff_login' %}">Login</a></p>
+            
             {% for message in messages %}
-             
             <p class="message">{{ message }}</p>
             {% endfor %}
         </form>
     </div>
 
     <script>
-        const form = document.getElementById('loginForm');
-        const btn = document.getElementById('loginBtn');
+        const form = document.getElementById('registerForm');
+        const btn = document.getElementById('registerBtn');
         
         form.addEventListener('submit', function() {
             btn.classList.add('loading');

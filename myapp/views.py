@@ -1,4 +1,5 @@
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -20,9 +21,33 @@ logger = logging.getLogger(__name__)
 def home(request):
     return render(request, 'home.html')
 
+def register_staff(request):
+    if request.method=="POST":
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        confirm_password = request.POST.get('confirm_password')
+
+        if User.objects.filter(username=username):
+            messages.error(request,'User name already exist!!')
+            return render(request,'register_staff.html')
+        
+        if password != confirm_password:
+            messages.error(request,'password not match ')
+            return render(request,'register_staff.html')
+        
+        user = User.objects.create_user(username=username,password=password)
+        user.save()
+        messages.success(request,'Registered successfully!!')
+        return redirect('staff_login')
+  
+    return render(request,'register_staff.html')
+
+
 @login_required
 def student_detail(request, student_id,batch_id):
     student = get_object_or_404(Student, pk=student_id)
+
+    print("student :",student)
     #  Only allow staff to see their own students
     if hasattr(request.user, 'staff'):
         if student.staff != request.user.staff:

@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
+from django.db.models.functions import Lower
 
 # Create your models here.
 class Staff(models.Model):
@@ -17,9 +18,23 @@ class Staff(models.Model):
 class Course(models.Model):
     course_id = models.AutoField(primary_key=True)
     course_name = models.CharField(max_length=100)
-
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                Lower('course_name'),            # Prevent case-insensitive duplicates
+                name='unique_lower_course_name'
+            )
+        ]
+    
     def __str__(self):
         return self.course_name
+    def save(self,*args,**kwargs):
+        #print(self.course_name)
+        if self.course_name:
+            self.course_name=self.course_name.capitalize()
+            #print(self.course_name)
+        super().save(*args,**kwargs)
 
 class Student(models.Model):
     student_id = models.AutoField(primary_key=True)
@@ -62,6 +77,14 @@ class CourseTopic(models.Model):
 
     def __str__(self):
         return f"{self.module_name} - {self.topic_name}"
+    
+    def save(self,*args,**kwargs):
+        print(self.module_name)
+        if self.module_name and self.topic_name:
+            self.module_name=self.module_name.capitalize()
+            self.topic_name=self.topic_name.capitalize()
+            print(self.module_name)
+        super().save(*args,**kwargs)
 
 class StudentTopicProgress(models.Model):
     id = models.AutoField(primary_key=True)

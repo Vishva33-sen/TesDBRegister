@@ -70,6 +70,39 @@ class StudentAdminForm(forms.ModelForm):
             # Add this: no staff selected -> empty queryset
             self.fields['batch'].queryset = Batch.objects.none()
 
+# ----------------------
+# staff Course Filter
+# ----------------------
+class StaffCourseFilter(admin.SimpleListFilter):
+    title = 'Course'
+    parameter_name = 'course'
+
+    def lookups(self, request, model_admin):
+        courses = Course.objects.all()
+        return [(c.pk, c.course_name) for c in courses]
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value:
+            return queryset.filter(courses__pk=value)
+        return queryset
+
+class EmailDomainFilter(admin.SimpleListFilter):
+    title = 'Email Domain'
+    parameter_name = 'email_domain'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('gmail.com', 'Gmail'),
+            ('outlook.com', 'Outlook'),
+            ('yahoo.com', 'Yahoo'),
+        ]
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value:
+            return queryset.filter(staff_email__icontains=value)
+        return queryset
 
 
 
@@ -80,7 +113,12 @@ class StudentAdminForm(forms.ModelForm):
 @admin.register(Staff)
 class StaffAdmin(admin.ModelAdmin):
     list_display = ('staff_id', 'staff_name', 'contact', 'staff_email','get_courses')
-    list_filter = ('staff_id', 'staff_name')
+    list_filter = (
+        'staff_id',
+        'staff_name',
+        StaffCourseFilter,     # NEW FILTER 1
+        EmailDomainFilter,     # NEW FILTER 2
+        )
 
     def get_courses(self, obj):
         # Join all course names assigned to this staff
@@ -94,7 +132,7 @@ class StaffAdmin(admin.ModelAdmin):
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
     list_display = ('course_id', 'course_name', 'get_staff_names')
-
+    list_filter = ('course_name',)
     def get_staff_names(self, obj):
         return ", ".join([s.staff_name for s in obj.staffs.all()])
     get_staff_names.short_description = "Staff"
@@ -224,7 +262,7 @@ class StudentAttendanceAdmin(admin.ModelAdmin):
 @admin.register(Batch)
 class BatchAdmin(admin.ModelAdmin):
     list_display=("batch_id","staff","batch_name","start_time","end_time")
-    list_filter=("staff","start_time","end_time",)
+    list_filter=("staff","start_time","end_time","batch_name")
     search_fields=("staff","start_time",)
 
 # ----------------------------

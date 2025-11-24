@@ -1,13 +1,20 @@
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
-from django.db.models.functions import Lower
+from django.core.validators import RegexValidator
+
+
+# Professional mobile number validation (India)
+mobile_validator = RegexValidator(
+    regex=r'^[6-9]\d{9}$',
+    message="Enter a valid 10-digit mobile number starting with 6-9."
+)
 
 # Create your models here.
 class Staff(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     staff_name =models.CharField(max_length=100)
-    contact=models.CharField(max_length=20,blank=True)
+    contact=models.CharField(max_length=10,validators=[mobile_validator],blank=True)
     staff_id = models.AutoField(primary_key=True)
     staff_email = models.EmailField(unique=True)
     courses = models.ManyToManyField("Course", related_name="staffs")
@@ -17,16 +24,8 @@ class Staff(models.Model):
 
 class Course(models.Model):
     course_id = models.AutoField(primary_key=True)
-    course_name = models.CharField(max_length=100)
-    
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                Lower('course_name'),            # Prevent case-insensitive duplicates
-                name='unique_lower_course_name'
-            )
-        ]
-    
+    course_name = models.CharField(max_length=100,unique=True)
+                
     def __str__(self):
         return self.course_name
     def save(self,*args,**kwargs):
@@ -74,7 +73,7 @@ class CourseTopic(models.Model):
 
     class Meta:
         unique_together = ('course', 'module_name', 'topic_name')
-
+        ordering = ('course','module_name','topic_name')
     def __str__(self):
         return f"{self.module_name} - {self.topic_name}"
     

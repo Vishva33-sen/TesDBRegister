@@ -262,7 +262,7 @@ class StudentAttendanceAdmin(admin.ModelAdmin):
 @admin.register(Batch)
 class BatchAdmin(admin.ModelAdmin):
     list_display=("batch_id","staff","batch_name","start_time","end_time")
-    list_filter=("staff","start_time","end_time","batch_name")
+    list_filter=("staff","start_time","end_time",)
     search_fields=("staff","start_time",)
 
 # ----------------------------

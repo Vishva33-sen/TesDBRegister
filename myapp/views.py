@@ -35,6 +35,11 @@ def register_staff(request):
             messages.error(request,'password not match ')
             return render(request,'register_staff.html')
         
+        if len(password) <=8:
+            messages.error(request,'Password must be at least 8 characters long.\n' \
+            'Include both uppercase and lowercase letters, \n' \
+            'numbers, and special characters.')
+            return render(request,'register_staff.html')
         user = User.objects.create_user(username=username,password=password)
         user.save()
         messages.success(request,'Registered successfully!!')

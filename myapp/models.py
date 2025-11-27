@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
 
 
 # Professional mobile number validation (India)
@@ -100,6 +101,16 @@ class StudentTopicProgress(models.Model):
     def __str__(self):
         return f"{self.student.student_name} - {self.topic.topic_name}"
 
+    # Add Date Validation
+    def clean(self):
+        # If end_date is provided but start_date is empty
+        if self.end_date and not self.start_date:
+            raise ValidationError("Start Date is required when End Date is filled.")
+
+        # If both dates exist → check order
+        if self.start_date and self.end_date:
+            if self.start_date > self.end_date:
+                raise ValidationError("Start Date cannot be greater than End Date.")
 
 
 
@@ -146,3 +157,8 @@ class Batch(models.Model):
     def __str__(self):
         return f"{self.batch_name} ({self.start_time.strftime('%I:%M %p')} - {self.end_time.strftime('%I:%M %p')})"
 
+    def clean(self):
+        # Validate time order
+        if self.start_time and self.end_time:
+            if self.start_time >= self.end_time:
+                raise ValidationError("End Time must be later than Start Time.")

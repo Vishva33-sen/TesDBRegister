@@ -196,6 +196,11 @@ def add_batch(request):
         batch_name=request.POST["batch_name"]
         start_time=request.POST["start_time"]
         end_time=request.POST["end_time"]
+        
+        # --- VALIDATION: start_time must be less than end_time ---
+        if start_time >= end_time:
+            messages.error(request, "Start time must be less than End time.")
+            return redirect("add_batch")  # Redirect back to same page
 
         Batch.objects.create(
             staff=staff,
